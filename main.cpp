@@ -5,18 +5,21 @@
 #include <alerror/alerror.h>
 #include <alproxies/alrobotpostureproxy.h>
 #include <qi/os.hpp>
-#include <time.h>
+#include <sys/time.h>
+#include <ctime>
 #include <vector>
+#include<math.h>
 
-std::vector<float> set_v(const vector<int> x_y_d, const vector<int> robot_pos, const vector<int> v_x_y_d, float theta){
+
+   std::vector<float> set_v(const std::vector<float> &x_y_d,  const std::vector<float> &robot_pos,  const std::vector<float> &v_x_y_d, float theta){
 
    float x_d, y_d;
    float x, y;
    float v_x_d, v_y_d;
    float x_b, y_b;
-   const float b;
-   const float K1=2;
-   const float K2=2;
+   const float b = 0.5;
+   const float K1 = 2;
+   const float K2 = 2;
 
    x_d = x_y_d.at(0);
    y_d = x_y_d.at(1);
@@ -29,8 +32,8 @@ std::vector<float> set_v(const vector<int> x_y_d, const vector<int> robot_pos, c
 
    float v_x_b = v_x_d + K1 * (x_d - x_b);
    float v_y_b = v_y_d + K2 * (y_d - y_b);
-   float v = cos(theta) * v_x_b + sin(theta) * v_y_b
-   float omega = sin(theta) * v_x_b + cos(theta) * v_y_b;
+   float v = cos(theta) * v_x_b + sin(theta) * v_y_b;
+   float omega = -sin(theta/b) * v_x_b + cos(theta/b) * v_y_b;
    std::vector<float> res;
    res.push_back(v);
    res.push_back(omega);
@@ -53,46 +56,71 @@ int main() {
   motion.setStiffnesses(jointName, stiffness);
 
   //Inizialize the variable for the computation
-  time_t start_t;
-  time_t real_t;
-
 
   const float R=1;
-  float omega_d= 0.1;
+  float omega_d= 0.25;
+  float omega;
   float v_x;
   float v_y ;
   float theta;
+  timeval start, stop;
+  double elapsedTime;
 
 
-    std::string name = "CameraTop";
-    int space = 1;
-    bool useSensorValues = true;
+
 
     motion.moveInit();
 
-    std::vector<float> x_y_d;
-    std::vector<float> v_x_y_d;
-    std::vector<float> robot_pos; = motion.getPosition(name, space, useSensorValues);
-    x_y_d.push_back(R * cos(omega_d * real_t));
-    x_y_d.push_back(R * sin(omega_d * real_t));
-    v_x_y_d.push_back(-R * sin(omega_d * real_t) * omega_d);
-    v_x_y_d.push_back(R * cos(omega_d * real_t) * omega_d);
+     // x e y desiderati
+     std::vector<float> x_y_d;
+     // velocità su x e y desiderate
+     std::vector<float> v_x_y_d;
+     //posizione del robot nel world frame
+     std::vector<float> robot_pos = motion.getRobotPosition(false);
+
+     x_y_d.push_back(R * cos(omega_d * elapsedTime));
+     x_y_d.push_back(R * sin(omega_d * elapsedTime));
+     v_x_y_d.push_back(-R * sin(omega_d * elapsedTime) * omega_d);
+     v_x_y_d.push_back(R * cos(omega_d * elapsedTime) * omega_d);
 
 
-    std::vector<float> v_x_y = set_v(x_y_d, robot_pos, v_x_y_d, theta);
+     std::vector<float> v_x_y = set_v(x_y_d, robot_pos, v_x_y_d, theta);
+
+     v_x = v_x_y.at(0) * cos(theta);
+     v_y = v_x_y.at(0) * sin(theta);
+     omega = v_x_y.at(1);
 
 
 
+     gettimeofday(&start, NULL);
 
-    start_t = time(&start_t);
-
-    while(true){
+     while(true){
         //qi::os::msleep(100);
-        motion.move(x, y, omega);
 
-       // motion.moveToward(x,y,theta);
-        std::vector<float> result = motion.getPosition(name, space, useSensorValues);
-        std::cout <<"Current position:" <<result << std::endl;
+        motion.move(v_x, v_y, omega);
+
+        gettimeofday(&stop, NULL);
+
+        std::vector<float> robot_pos = motion.getRobotPosition(false);
+
+        //calcola elapsedTime
+        elapsedTime = (stop.tv_sec - start.tv_sec) * 1000.0;               // sec to ms
+        elapsedTime += (stop.tv_usec - start.tv_usec) / 1000.0;            // us to ms
+
+
+
+        x_y_d.at(0) = R * cos(omega_d * elapsedTime);
+        x_y_d.at(1) = R * sin(omega_d * elapsedTime);
+        v_x_y_d.at(0) = -R * sin(omega_d * elapsedTime) * omega_d;
+        v_x_y_d.at(1)=R * cos(omega_d * elapsedTime) * omega_d;
+
+        std::vector<float> v_x_y = set_v(x_y_d, robot_pos, v_x_y_d, theta);
+
+        v_x = v_x_y.at(0) * cos(theta);
+        v_y = v_x_y.at(0) * sin(theta);
+        omega = v_x_y.at(1);
+
+
 
        }
 
