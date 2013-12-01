@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <iostream>
 
+using namespace std ;
+
 extern "C" {
   #include "remoteApi/extApi.h"
   #include "remoteApi/v_repConst.h"
@@ -14,10 +16,25 @@ int main(){
   if(clientID == -1){
       std::cout << "errore";
     }
-  std::cout << " connction id: " << simxGetConnectionId(clientID) << std::endl;
-  std::cout << " simxLoadScene return;  "
-            << simxLoadScene(clientID,"/opt/VREP_ROOT/scenes/naoConvexShapesMod21bis.ttt",0x000000,simx_opmode_oneshot_wait)
-            << std::endl;
+  cout << " connction id: " << simxGetConnectionId(clientID) << std::endl;
+  cout << " simxLoadScene return:  "
+            << simxLoadScene(clientID,"/home/eugenio/VREP_ROOT/scenes/naoConvexShapesMod21bis.ttt",0x000000,simx_opmode_oneshot_wait)
+            << endl;
+
+  simxInt** objectH;
+  simxInt* objectCount;
+  simxInt  object = simxGetObjects(clientID, sim_object_shape_type,objectCount, objectH, simx_opmode_oneshot_wait );
+
+  const simxChar* Obstacle;
+  simxInt* handle;
+  simxInt objectHandles = simxGetObjectHandle(clientID, Obstacle, handle, simx_opmode_oneshot_wait);
+
+
+
+
+  //cout<<"Result: "<<object<<endl;
+  simxInt start = simxStartSimulation(clientID, simx_opmode_oneshot_wait);
   simxFinish(clientID);
+
 }
 
