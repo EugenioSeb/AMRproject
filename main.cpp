@@ -8,61 +8,57 @@
 #include <sys/time.h>
 #include <ctime>
 #include <vector>
-#include<math.h>
+#include <math.h>
+extern "C" {
+#include "remoteApi/extApi.h"
+#include "remoteApi/v_repConst.h"
+/*	#include "extApiCustom.h" if you wanna use custom remote API functions! */
+}
 
 using namespace std ;
 
-   std::vector<float> set_v(const std::vector<float> &x_y_d,  const std::vector<float> &robot_pos,  const std::vector<float> &v_x_y_d, float theta){
+std::vector<float> inOutController(const std::vector<float> &x_y_d,  const std::vector<float> &robot_pos,  const std::vector<float> &v_x_y_d){
+  const float b = 0.1;
+  const float K1 = 2;
+  const float K2 = 2;
 
-   float x_d;
-   float y_d;
+  float x_d = x_y_d.at(0);
+  float y_d = x_y_d.at(1);
 
-   float x;
-   float y;
+  float x = robot_pos.at(0);
+  float y = robot_pos.at(1);
+  float theta = robot_pos.at(2);
 
-   float v_x_d;
-   float v_y_d;
+  float v_x_d = v_x_y_d.at(0);
+  float v_y_d = v_x_y_d.at(1);
 
-   float x_b;
-   float y_b;
+  float x_b = x + b * cos(theta);
+  float y_b = y + b * sin(theta);
 
-   const float b = 1.5;
-   const float K1 = 0.5;
-   const float K2 = 0.5;
+  float v_x_b = v_x_d + (K1 * (x_d - x_b));
+  float v_y_b = v_y_d + (K2 * (y_d - y_b));
+  //cout<<"v_x_b"<<v_x_b<<"v_y_b"<<v_y_b<<endl;
 
-   x_d = x_y_d.at(0);
-   y_d = x_y_d.at(1);
+  float v = cos(theta) * v_x_b + (sin(theta) * v_y_b)/b;
+  float omega = cos(theta) * v_y_b - (sin(theta) * v_x_b )/b;
 
-   x = robot_pos.at(0);
-   y = robot_pos.at(1);
-
-   v_x_d = v_x_y_d.at(0);
-   v_y_d = v_x_y_d.at(1);
-
-
-   x_b = x + b * cos(theta);
-   y_b = y + b * sin(theta);
-
-   float v_x_b = v_x_d + K1 * (x_d - x_b);
-   float v_y_b = v_y_d + K2 * (y_d - y_b);
-
-      //cout<<"v_x_b"<<v_x_b<<"v_y_b"<<v_y_b<<endl;
-
-   float v = cos(theta) * v_x_b + sin(theta) * v_y_b;
-   float omega = (cos(theta) * v_y_b - sin(theta) * v_x_b )/b;
-
-   vector<float> res;
-
-   res.push_back(v);
-   res.push_back(omega);
-
-   return res;
-
+  vector<float> res(2);
+  res.at(0) = v;
+  res.at(1) = omega;
+  return res;
 }
 
 int main() {
-
-
+  //Connect VREP through remote API
+  int remApiClientID = simxStart("127.0.0.1",19698,true,true,2000,5);
+  if(remApiClientID == -1){
+      std::cout << "Error simxStart";
+    }
+  // Get the handle of the ball
+  simxInt handle;
+  cout<<"ErroreObjectHandle:"<<simxGetObjectHandle(remApiClientID, "Sphere", &handle, simx_opmode_oneshot_wait)<<endl;
+  //Initialize the position
+  simxFloat position[] = {0, 0, 0.25};
 
   //Set the IP and the Port for comunication
   string IpNao = "127.0.0.1";
@@ -70,104 +66,94 @@ int main() {
 
   //Create an AlMotionProxy object
   AL::ALMotionProxy motion(IpNao, PortNao);
-  cout<<"cazzo"<<endl;
 
   //Give a stiffness at the robot
-  const AL::ALValue jointName = "Body";
-  const AL::ALValue stiffness = 1.0f;
-
-  motion.setStiffnesses(jointName, stiffness);
+  motion.stiffnessInterpolation("Body", 1, 1);
+  sleep(1);
   motion.moveInit();
 
-  //Inizialize the variable for the computation
-  const float R = 4;
-  float omega_d = 2 * M_PI / 30;
-  float omega = 0;
-  float v_x = 0;
-  float v_y = 0;
-  float theta;
+  //Parameters of the trajectory
+  const float R = 1;
+  float omega_d = 2 * M_PI / 100;
+  float x_c = 0;
+  float y_c = 1;
+
+  //Init of other parameters
   double delta_t = 0;
 
-  double x_c = 0;
-  double y_c = 0;
 
   timeval start;
   timeval stop;
 
-
-
-
   // x e y desiderati
-  std::vector<float> x_y_d;
+  std::vector<float> x_y_d(2);
 
   // velocità su x e y desiderate
-  std::vector<float> v_x_y_d;
+  std::vector<float> v_x_y_d(2);
 
   //posizione del robot nel world frame
   std::vector<float> robot_pos = motion.getRobotPosition(false);
   //std::cout << "Robot position is: " << robot_pos << std::endl;
 
+  //x_c and y_c center of the circumference
+  float theta_d = omega_d * delta_t - (M_PI/2);
+  x_y_d.at(0) = x_c + (R * cos(theta_d));
+  x_y_d.at(1) = y_c + (R * sin(theta_d));
 
-     //x_c and y_c center of the circumference
-     x_y_d.push_back(x_c + (R * cos(omega_d * delta_t)));
-     x_y_d.push_back(y_c + (R * sin(omega_d * delta_t)));
+  v_x_y_d.at(0) = -R * sin(theta_d) * omega_d;
+  v_x_y_d.at(1) =  R * cos(theta_d) * omega_d;
 
-     v_x_y_d.push_back(-R * sin(omega_d * delta_t) * omega_d);
-     v_x_y_d.push_back(R * cos(omega_d * delta_t) * omega_d);
+  std::vector<float> v_x_y = inOutController(x_y_d, robot_pos, v_x_y_d);
 
-
-     theta = omega_d * delta_t;
-
-     std::vector<float> v_x_y = set_v(x_y_d, robot_pos, v_x_y_d, theta);
-
-     v_x = v_x_y.at(0) ;
-     omega = v_x_y.at(1);
+  float v_x = v_x_y.at(0) ;
+  float omega = v_x_y.at(1);
 
 
 
-     gettimeofday(&start, NULL);
+  //wait the robot start mooving
+  sleep(0.8);
 
-     bool i=true;
-     while(i){
+  gettimeofday(&start, NULL);
+  while(true){
+      motion.move(v_x, 0, omega);
+      sleep(0.4);
+      //motion.waitUntilWalkIsFinished( );
+      gettimeofday(&stop, NULL);
+      //delta_t = delta_t + 0.5;
+      //theta = omega_d * delta_t;
+      //cout <<theta <<endl;
 
-
-        motion.move(v_x, 0, omega);
-       sleep(1);
-        //motion.waitUntilWalkIsFinished();
-        gettimeofday(&stop, NULL);
-        //delta_t = delta_t + 0.5;
-       // theta = omega_d * delta_t;
-        //cout <<theta <<endl;
-
-
-
-
-        //calcola elapsedTime
-        delta_t  = (stop.tv_sec - start.tv_sec) * 1000.0;               // sec to ms
-        delta_t += (stop.tv_usec - start.tv_usec) / 1000.0;            // us to ms
-        delta_t  = delta_t / 1000.0;
+      //calcola elapsedTime
+      delta_t  = (stop.tv_sec - start.tv_sec) * 1000.0;               // sec to ms
+      delta_t += (stop.tv_usec - start.tv_usec) / 1000.0;            // us to ms
+      delta_t  = delta_t / 1000.0;
 
 
-        x_y_d.at(0) = x_c + R * cos(omega_d * delta_t);
-        x_y_d.at(1) = y_c + R * sin(omega_d * delta_t);
+      //x_c and y_c center of the circumference
+      theta_d = omega_d * delta_t - (M_PI/2) + 0.15;
+      x_y_d.at(0) = x_c + (R * cos(theta_d));
+      x_y_d.at(1) = y_c + (R * sin(theta_d));
 
-        v_x_y_d.at(0) = -R * sin(omega_d * delta_t) * omega_d;
-        v_x_y_d.at(1)=R * cos(omega_d * delta_t) * omega_d;
+      v_x_y_d.at(0) = -R * sin(theta_d) * omega_d;
+      v_x_y_d.at(1) =  R * cos(theta_d) * omega_d;
 
-        std::vector<float> robot_pos = motion.getRobotPosition(false);
-        //std::cout << "Robot position is: " << robot_pos << std::endl;
-        vector<float> v_x_y = set_v(x_y_d, robot_pos, v_x_y_d, theta);
+      std::vector<float> robot_pos = motion.getRobotPosition(false);
+      //std::cout << "Robot position is: " << robot_pos << std::endl;
+      vector<float> v_x_y = inOutController(x_y_d, robot_pos, v_x_y_d);
 
-        v_x = v_x_y.at(0) ;
-        omega = v_x_y.at(1);
+      //update ball position
+      position[0] = x_y_d.at(0);
+      position[1] = x_y_d.at(1);
+      simxSetObjectPosition(remApiClientID, handle, -1, position, simx_opmode_oneshot_wait);
 
-        cout<<"v"<<v_x<<"...w"<<omega<<"...t"<<delta_t<<endl;
+      v_x = v_x_y.at(0);
+      omega = v_x_y.at(1);
 
+      cout <<"At time:" << delta_t << "\tv:" << v_x << "...w:" << omega << endl;
 
-       }
-
-
-
+    }
+  motion.stopMove();
+  simxFinish(remApiClientID);
 
 }
 
