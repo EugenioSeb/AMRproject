@@ -19,8 +19,6 @@ using namespace std ;
 
 
 
-
-
 int main(){
 
     //Connect VREP through remote API
@@ -62,20 +60,24 @@ int main(){
     float theta_d;
 
     // omega desiderato (to set)
-    const float omega_d = 2 * M_PI / 150;
+    const float omega_d = 2 * M_PI / 100;
 
     // velocità desiverata (to set)
-    const float v_d = 0.025;
+    float v_d;
+    //float v_d = 0.1;
 
     // parametri di controllo
-    const float zeta = 1;
-    const float a = 1;
+    const float zeta = 0.5;
+    const float a = 2;
     float K1 = 2 * zeta * a;
     float K2 = (pow(a, 2) - pow(omega_d, 2))/v_d;
     float K3 = 2 * zeta * a;
 
     // x e y desiderati
     vector<float> x_y_d(2);
+
+    // v_x e v_y desiderati
+    vector<float> v_x_y_d(2);
 
     // tracking error
     vector<float> e(3);
@@ -105,23 +107,33 @@ int main(){
         // real NAO position
         robot_pos = motion.getRobotPosition(false);
 
-        // set the error tracking
+        // set the error tracking (remember e1=e[0], e2=e[1], e3=e[2] )
         e[0] = cos(robot_pos[2]) * (x_y_d[0] - robot_pos[0]) + sin(robot_pos[2]) * (x_y_d[1] - robot_pos[1]);
         e[1] = -sin(robot_pos[2]) * (x_y_d[0] - robot_pos[0]) + cos(robot_pos[2]) * (x_y_d[1] - robot_pos[1]);
         e[2] = theta_d - robot_pos[2];
 
-        // set the linear feedback
+        //update k2
+        K2 = (pow(a, 2) - pow(omega_d, 2))/fabs(v_d);
+
+        // set the linear feedback (remember u1=u1[0], u2=u2[1])
         u[0] =-K1 * e[0];
         u[1] = -e[1] * K2 -K3 * e[2];
 
         //update ball position
-        position[0] = x_y_d.at(0);
-        position[1] = x_y_d.at(1);
+        position[0] = x_y_d[0];
+        position[1] = x_y_d[1];
         simxSetObjectPosition(remApiClientID, handle, -1, position, simx_opmode_oneshot_wait);
+
+        // set v_d
+        v_x_y_d[0] = -R * sin(theta_d) * omega_d;
+        v_x_y_d[1] =  R * cos(theta_d) * omega_d;
+        v_d = sqrt(pow(v_x_y_d[0], 2) + pow(v_x_y_d[1], 2));
 
         // set v_x and omega
         v_x = v_d * cos(e[2]) - u[0];
         omega = omega_d - u[1];
+
+        cout<<"Linear velocity: "<<v_x<<" Angular velocity:"<<omega<<"Error e1:"<<e[0]<<endl;
 
         // give the imput to the NAO
         motion.move(v_x, 0, omega);
