@@ -54,8 +54,6 @@ std::vector<float> inOutController(const std::vector<float> &x_y_d,  const std::
   return res;
 }
 
-
-
 // TODO Documentation
 void getTrajectory(vector<float> &position, vector<float> &velocity, double time){
   const float theta_d = OMEGA_DES * time - (M_PI/2) + 0.15;
@@ -116,7 +114,7 @@ int main() {
   std::vector<float> v_x_y_d(2);
   float v_x;
   float omega;
-  float theta_d;
+
   simxFloat robot_pos[3]; //x y z vector
   simxFloat robot_orient[3]; // angles along x y z
   vector<float> robot_pos_orient(3); // x y and z angle
@@ -141,7 +139,7 @@ int main() {
 
 
       //x_c and y_c center of the circumference
-      getTrajectory(x_y_d,v_x_y_d,delta_t);
+      getTrajectory(x_y_d, v_x_y_d, delta_t);
 
       //std::vector<float> robot_pos = motion.getRobotPosition(false);
       simxGetObjectPosition(remApiClientID,   robotHandle, -1,robot_pos, simx_opmode_oneshot_wait);
