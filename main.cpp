@@ -9,43 +9,71 @@
 #include <ctime>
 #include <vector>
 #include <math.h>
+
 extern "C" {
 #include "remoteApi/extApi.h"
 #include "remoteApi/v_repConst.h"
 /*	#include "extApiCustom.h" if you wanna use custom remote API functions! */
 }
+//controller constants
+#define K1 2.0
+#define POINT_B 0.25
+
+//trajectory constants
+#define OMEGA_DES 2 * M_PI / 100
+#define CENTER_X 0
+#define CENTER_Y 1
+#define RAY 1
 
 using namespace std ;
-
 std::vector<float> inOutController(const std::vector<float> &x_y_d,  const std::vector<float> &robot_pos,  const std::vector<float> &v_x_y_d){
-  const float b = 0.1;
-  const float K1 = 2;
 
-  float x_d = x_y_d.at(0);
-  float y_d = x_y_d.at(1);
+  float x_d = x_y_d[0];
+  float y_d = x_y_d[1];
 
-  float x = robot_pos.at(0);
-  float y = robot_pos.at(1);
-  float theta = robot_pos.at(2);
+  float x = robot_pos[0];
+  float y = robot_pos[1];
+  float theta = robot_pos[2];
 
-  float v_x_d = v_x_y_d.at(0);
-  float v_y_d = v_x_y_d.at(1);
+  float v_x_d = v_x_y_d[0];
+  float v_y_d = v_x_y_d[1];
 
-  float x_b = x + b * cos(theta);
-  float y_b = y + b * sin(theta);
+  float x_b = x + 2.0 * cos(theta);
+  float y_b = y + POINT_B * sin(theta);
 
   float v_x_b = v_x_d + (K1 * (x_d - x_b));
   float v_y_b = v_y_d + (K1 * (y_d - y_b));
   //cout<<"v_x_b"<<v_x_b<<"v_y_b"<<v_y_b<<endl;
 
-  float v = cos(theta) * v_x_b + (sin(theta) * v_y_b)/b;
-  float omega = cos(theta) * v_y_b - (sin(theta) * v_x_b )/b;
+  float v = cos(theta) * v_x_b + sin(theta) * v_y_b;
+  float omega = (cos(theta) * v_y_b - (sin(theta) * v_x_b )) / POINT_B;
 
   vector<float> res(2);
-  res.at(0) = v;
-  res.at(1) = omega;
+  res[0] = v;
+  res[1] = omega;
   return res;
 }
+
+
+
+// TODO Documentation
+void getTrajectory(vector<float> &position, vector<float> &velocity, double time){
+  const float theta_d = OMEGA_DES * time - (M_PI/2) + 0.15;
+  position[0] = CENTER_X + (RAY * cos(theta_d));
+  position[1] = CENTER_Y + (RAY * sin(theta_d));
+
+  velocity[0] = -RAY * sin(theta_d) * OMEGA_DES;
+  velocity[1] =  RAY * cos(theta_d) * OMEGA_DES;
+
+  //Traiettoria "otto"
+  //x_c and y_c center of the "eight"
+//  position[0] = CENTER_X + (RAY * sin(2 * OMEGA_DES));
+//  position[1] = CENTER_Y + (RAY * sin(OMEGA_DES));
+
+//  velocity[0] = RAY * cos(2 * theta_d)* 2 * OMEGA_DES;
+//  velocity[1] =  RAY * cos(theta_d) * OMEGA_DES;
+}
+
 
 int main() {
   //Connect VREP through remote API
@@ -74,12 +102,6 @@ int main() {
   sleep(1);
   motion.moveInit();
 
-  //Parameters of the trajectory
-  const float R = 1;
-  float omega_d = 2 * M_PI / 100;
-  float x_c = 0;
-  float y_c = 1;
-
   //Init of other parameters
   double delta_t = 0;
 
@@ -103,6 +125,7 @@ int main() {
   sleep(0.8);
 
   gettimeofday(&start, NULL);
+  //------------------------------------------- main cycle ----------------------------------------//
   while(true){
 
       //motion.waitUntilWalkIsFinished( );
@@ -118,12 +141,7 @@ int main() {
 
 
       //x_c and y_c center of the circumference
-      theta_d = omega_d * delta_t - (M_PI/2) + 0.15;
-      x_y_d.at(0) = x_c + (R * cos(theta_d));
-      x_y_d.at(1) = y_c + (R * sin(theta_d));
-
-      v_x_y_d.at(0) = -R * sin(theta_d) * omega_d;
-      v_x_y_d.at(1) =  R * cos(theta_d) * omega_d;
+      getTrajectory(x_y_d,v_x_y_d,delta_t);
 
       //std::vector<float> robot_pos = motion.getRobotPosition(false);
       simxGetObjectPosition(remApiClientID,   robotHandle, -1,robot_pos, simx_opmode_oneshot_wait);
@@ -142,246 +160,10 @@ int main() {
       omega = 0.2* v_x_y[1];
 
       cout <<"At time:" << delta_t << "\tv:" << v_x << "...w:" << omega << endl;
-      motion.move(v_x, 0, omega);
+      motion.move(v_x * cos(omega), v_x * sin(omega), omega);
       sleep(0.4);
     }
   motion.stopMove();
   simxFinish(remApiClientID);
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*
-/*
-#include <iostream>
-#include <iomanip>
-#include <cstdlib>
-#include <ctime>
-#include <vector>
-#include <utility>
-#include <cmath>
-
-using namespace std ;
-
-
-#include <alproxies/alnavigationproxy.h>
-#include <alproxies/almotionproxy.h>
-#include <alerror/alerror.h>
-#include <alproxies/alrobotpostureproxy.h>
-#include <qi/os.hpp>
-#include "robot.hpp"
-
-#include <sys/time.h>
-
-
-
-class Move_t {
-public :
-
-  static AL::ALMotionProxy *Robot ;
-  static double b ;
-  static double K1 ;
-  static double K2 ;
-
-
-  double x ;
-  double y ;
-  double theta ;
-
-  double y1d ;
-  double y2d ;
-  double y1d_p ;
-  double y2d_p ;
-
-  double y1 ;
-  double y2 ;
-
-  double u1 ;
-  double u2 ;
-
-  double y1_p ;
-  double y2_p ;
-
-  double v ;
-  double w ;
-
-  void Next(const vector< double >& rvd) {
-
-    const vector< float > Pos(Robot->getRobotPosition(false)) ;
-
-    x = (double)(Pos[0]) ;
-    y = (double)(Pos[1]) ;
-    theta = (double)(Pos[2]) ;
-
-    y1d   = rvd[0] ;
-    y2d   = rvd[1] ;
-    y1d_p = rvd[2] ;
-    y2d_p = rvd[3] ;
-
-    y1 = x + b * cos(theta) ;
-    y2 = y + b * sin(theta) ;
-
-    u1 = y1d_p + K1 * (y1d - y1) ;
-    u2 = y2d_p + K2 * (y2d - y2) ;
-
-    y1_p = u1 ;
-    y2_p = u2 ;
-
-    v = cos(theta) * u1  + sin(theta) * u2 ;
-    w = (-sin(theta) * u1 + cos(theta) * u2) / b ;
-
-    Robot->move(y1_p,y2_p,w) ;
-  }
-
-  void Print() {
-    cout << left
-     << "x = "     << setw(10) << x
-     << "y = "     << setw(10) << y
-     << "theta = " << setw(10) << theta
-
-     << "y1d = "   << setw(10) << y1d
-     << "y2d = "   << setw(10) << y2d
-     << "y1d_p = " << setw(10) << y1d_p
-     << "y2d_p = " << setw(10) << y2d_p
-
-     << "y1 = "    << setw(10) << y1
-     << "y2 = "    << setw(10) << y2
-     << "u1 = "    << setw(10) << u1
-     << "u2 = "    << setw(10) << u2
-
-     << "y1_p = "  << setw(10) << y1_p
-     << "y2_p = "  << setw(10) << y2_p
-     << "v = "     << setw(10) << v
-     << "w = "     << setw(10) << w
-     << endl ;
-  }
-} ;
-
-
-double Move_t::b = 1.5 ;
-double Move_t::K1 = 2 ;
-double Move_t::K2 = 2 ;
-
-AL::ALMotionProxy *Move_t::Robot = 0 ;
-
-
-#include "robot.hpp"
-
-typedef vector< vector< double > > Trajectory_t ;
-
-Trajectory_t GetCircle(const double& xc,const double yc,
-               const double& R,const double& wd,
-               const double& dt,
-               const double& tEnd) {
-  Trajectory_t Trajectory ;
-  Trajectory.clear() ;
-  vector< double > rv ; rv.resize(4) ;
-  for(double t = 0 ; t < tEnd ; t += dt) {
-    rv[0] = xc + R * sin(wd * t) ;
-    rv[1] = yc + R * cos(wd * t) ;
-    rv[2] = + R * wd * cos(wd * t) ;
-    rv[3] = - R * wd * sin(wd * t) ;
-    Trajectory.push_back(rv) ;
-  }
-  return Trajectory ;
-}
-
-
-Trajectory_t RandomWalk(const double& dt,const double tEnd) {
-  Trajectory_t Trajectory ;
-  Trajectory.clear() ;
-  srand48(time(0)) ;
-  for(double t = 0 ; t < tEnd ; t += dt) {
-    vector< double > rv ; rv.resize(4) ;
-    rv[0] = 10*drand48() ;
-    rv[1] = 10*drand48() ;
-    rv[2] = 10*drand48() ;
-    rv[3] = 10*drand48() ;
-    Trajectory.push_back(rv) ;
-  }
-  return Trajectory ;
-}
-
-int main(int argc,char *argv[]) {
-
-  std::string IpNao = "127.0.0.1";
-  int PortNao = 9559 ;
-  Robot_t Robot(IpNao,PortNao) ;
-
-  //cout<<FRAME_ROBOT <<endl;
-
-  //Create an AlMotionProxy object
-
-  //Inizialize the variable for the computation
-  double xc = 0 ;
-  double yc = 0 ;
-  double R = 3 ;
-  double wd = 1.0 / 3.0 ;
-  double dt = 0.5 ;
-  double tEnd = 120 ;
-  Trajectory_t Trajectory(GetCircle(xc,yc,R,wd,dt,tEnd)) ;
-
-  //Trajectory_t Trajectory(RandomWalk(dt,tEnd)) ;
-//  Move_t Move ;
-
-  double delta_t = 0;
-
-  sleep(3);
-  while(true){
-    for(Trajectory_t::const_iterator rvd = Trajectory.begin() ; rvd != Trajectory.end() ; rvd++) {
-        Robot.Follow((*rvd)[0],(*rvd)[1] ,(*rvd)[2] ,(*rvd)[3], wd, delta_t)  ;
-        delta_t += 0.5;
-        //      Move.Print() ;
-    }
-  }
-  return 0 ;
-} ;
-
-
-
-
- */
-
-
-
-
