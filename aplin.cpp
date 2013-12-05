@@ -27,10 +27,13 @@ int main(){
         std::cout << "Error simxStart";
       }
     // Get the handle of the ball
-    simxInt handle;
-    cout<<"ErroreObjectHandle:"<<simxGetObjectHandle(remApiClientID, "Sphere", &handle, simx_opmode_oneshot_wait)<<endl;
+    simxInt ballHandle;
+    cout<<"Errore Ball Handle:"<<simxGetObjectHandle(remApiClientID, "Sphere", &ballHandle, simx_opmode_oneshot_wait)<<endl;
+    // Get the handle of the robot
+    simxInt robotHandle;
+    cout<<"Errore Handle:"<<simxGetObjectHandle(remApiClientID, "torso_respondable1cyl0", &robotHandle, simx_opmode_oneshot_wait)<<endl;
     //Initialize the position
-    simxFloat position[] = {0, 0, 0.25};
+    simxFloat ballPos[] = {0, 0, 0.25};
 
     //Set the IP and the Port for comunication
     string IpNao = "127.0.0.1";
@@ -67,8 +70,8 @@ int main(){
     //float v_d = 0.1;
 
     // parametri di controllo
-    const float zeta = 0.5;
-    const float a = 2;
+    const float zeta = 1;
+    const float a = 1;
     float K1 = 2 * zeta * a;
     float K2 = (pow(a, 2) - pow(omega_d, 2))/v_d;
     float K3 = 2 * zeta * a;
@@ -85,8 +88,11 @@ int main(){
     // linear feedback
     vector<float> u(2);
 
-    // the robot position
-    vector<float> robot_pos;
+    // the robot position and orientation
+
+    simxFloat robot_pos[3]; //x y z vector
+    simxFloat robot_orient[3]; // angles along x y z
+    vector<float> robot_pos_orient(3); // x y and z angle
 
     // imput velocities
     float v_x;
@@ -105,12 +111,17 @@ int main(){
 
 
         // real NAO position
-        robot_pos = motion.getRobotPosition(false);
+        //robot_pos = motion.getRobotPosition(false);
+        simxGetObjectPosition(remApiClientID,   robotHandle, -1,robot_pos,simx_opmode_oneshot_wait);
+        simxGetObjectOrientation(remApiClientID, robotHandle, -1, robot_orient, simx_opmode_oneshot_wait);
+        robot_pos_orient[0] = robot_pos[0];
+        robot_pos_orient[1] = robot_pos[1];
+        robot_pos_orient[2] = robot_orient[2];
 
         // set the error tracking (remember e1=e[0], e2=e[1], e3=e[2] )
-        e[0] = cos(robot_pos[2]) * (x_y_d[0] - robot_pos[0]) + sin(robot_pos[2]) * (x_y_d[1] - robot_pos[1]);
-        e[1] = -sin(robot_pos[2]) * (x_y_d[0] - robot_pos[0]) + cos(robot_pos[2]) * (x_y_d[1] - robot_pos[1]);
-        e[2] = theta_d - robot_pos[2];
+        e[0] = cos(robot_pos_orient[2]) * (x_y_d[0] - robot_pos_orient[0]) + sin(robot_pos_orient[2]) * (x_y_d[1] - robot_pos_orient[1]);
+        e[1] = -sin(robot_pos_orient[2]) * (x_y_d[0] - robot_pos_orient[0]) + cos(robot_pos_orient[2]) * (x_y_d[1] - robot_pos_orient[1]);
+        e[2] = theta_d - robot_pos_orient[2];
 
         //update k2
         K2 = (pow(a, 2) - pow(omega_d, 2))/fabs(v_d);
@@ -120,9 +131,10 @@ int main(){
         u[1] = -e[1] * K2 -K3 * e[2];
 
         //update ball position
-        position[0] = x_y_d[0];
-        position[1] = x_y_d[1];
-        simxSetObjectPosition(remApiClientID, handle, -1, position, simx_opmode_oneshot_wait);
+        ballPos[0] = ballPos[0];
+        ballPos[1] = robot_pos_orient[1];
+        simxSetObjectPosition(remApiClientID, ballHandle, -1, robot_pos, simx_opmode_oneshot_wait);
+        simxSetObjectOrientation(remApiClientID, ballHandle, -1, robot_orient, simx_opmode_oneshot_wait);
 
         // set v_d
         v_x_y_d[0] = -R * sin(theta_d) * omega_d;
@@ -133,7 +145,7 @@ int main(){
         v_x = v_d * cos(e[2]) - u[0];
         omega = omega_d - u[1];
 
-        cout<<"Linear velocity: "<<v_x<<" Angular velocity:"<<omega<<"Error e1:"<<e[0]<<endl;
+        //cout<<"Linear velocity: "<<v_x<<" Angular velocity:"<<omega<<"Error e1:"<<e[0]<<endl;
 
         // give the imput to the NAO
         motion.move(v_x, 0, omega);

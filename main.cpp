@@ -20,7 +20,6 @@ using namespace std ;
 std::vector<float> inOutController(const std::vector<float> &x_y_d,  const std::vector<float> &robot_pos,  const std::vector<float> &v_x_y_d){
   const float b = 0.1;
   const float K1 = 2;
-  const float K2 = 2;
 
   float x_d = x_y_d.at(0);
   float y_d = x_y_d.at(1);
@@ -36,7 +35,7 @@ std::vector<float> inOutController(const std::vector<float> &x_y_d,  const std::
   float y_b = y + b * sin(theta);
 
   float v_x_b = v_x_d + (K1 * (x_d - x_b));
-  float v_y_b = v_y_d + (K2 * (y_d - y_b));
+  float v_y_b = v_y_d + (K1 * (y_d - y_b));
   //cout<<"v_x_b"<<v_x_b<<"v_y_b"<<v_y_b<<endl;
 
   float v = cos(theta) * v_x_b + (sin(theta) * v_y_b)/b;
@@ -55,10 +54,13 @@ int main() {
       std::cout << "Error simxStart";
     }
   // Get the handle of the ball
-  simxInt handle;
-  cout<<"ErroreObjectHandle:"<<simxGetObjectHandle(remApiClientID, "Sphere", &handle, simx_opmode_oneshot_wait)<<endl;
+  simxInt ballHandle;
+  cout<<"ErroreObjectHandle:"<<simxGetObjectHandle(remApiClientID, "Sphere", &ballHandle, simx_opmode_oneshot_wait)<<endl;
   //Initialize the position
-  simxFloat position[] = {0, 0, 0.25};
+  simxInt robotHandle;
+  cout<<"Errore Handle:"<<simxGetObjectHandle(remApiClientID, "torso_respondable1cyl0", &robotHandle, simx_opmode_oneshot_wait)<<endl;
+  //Initialize the position
+  simxFloat ballPosition[] = {0, 0, 0.25};
 
   //Set the IP and the Port for comunication
   string IpNao = "127.0.0.1";
@@ -90,33 +92,19 @@ int main() {
 
   // velocità su x e y desiderate
   std::vector<float> v_x_y_d(2);
-
-  //posizione del robot nel world frame
-  std::vector<float> robot_pos = motion.getRobotPosition(false);
-  //std::cout << "Robot position is: " << robot_pos << std::endl;
-
-  //x_c and y_c center of the circumference
-  float theta_d = omega_d * delta_t - (M_PI/2);
-  x_y_d.at(0) = x_c + (R * cos(theta_d));
-  x_y_d.at(1) = y_c + (R * sin(theta_d));
-
-  v_x_y_d.at(0) = -R * sin(theta_d) * omega_d;
-  v_x_y_d.at(1) =  R * cos(theta_d) * omega_d;
-
-  std::vector<float> v_x_y = inOutController(x_y_d, robot_pos, v_x_y_d);
-
-  float v_x = v_x_y.at(0) ;
-  float omega = v_x_y.at(1);
-
-
+  float v_x;
+  float omega;
+  float theta_d;
+  simxFloat robot_pos[3]; //x y z vector
+  simxFloat robot_orient[3]; // angles along x y z
+  vector<float> robot_pos_orient(3); // x y and z angle
 
   //wait the robot start mooving
   sleep(0.8);
 
   gettimeofday(&start, NULL);
   while(true){
-      motion.move(v_x, 0, omega);
-      sleep(0.4);
+
       //motion.waitUntilWalkIsFinished( );
       gettimeofday(&stop, NULL);
       //delta_t = delta_t + 0.5;
@@ -137,20 +125,25 @@ int main() {
       v_x_y_d.at(0) = -R * sin(theta_d) * omega_d;
       v_x_y_d.at(1) =  R * cos(theta_d) * omega_d;
 
-      std::vector<float> robot_pos = motion.getRobotPosition(false);
-      //std::cout << "Robot position is: " << robot_pos << std::endl;
-      vector<float> v_x_y = inOutController(x_y_d, robot_pos, v_x_y_d);
+      //std::vector<float> robot_pos = motion.getRobotPosition(false);
+      simxGetObjectPosition(remApiClientID,   robotHandle, -1,robot_pos, simx_opmode_oneshot_wait);
+      simxGetObjectOrientation(remApiClientID, robotHandle, -1, robot_orient, simx_opmode_oneshot_wait);
+      robot_pos_orient[0] = robot_pos[0];
+      robot_pos_orient[1] = robot_pos[1];
+      robot_pos_orient[2] = robot_orient[2];
+
+      vector<float> v_x_y = inOutController(x_y_d, robot_pos_orient, v_x_y_d);
 
       //update ball position
-      position[0] = x_y_d.at(0);
-      position[1] = x_y_d.at(1);
-      simxSetObjectPosition(remApiClientID, handle, -1, position, simx_opmode_oneshot_wait);
-
-      v_x = v_x_y.at(0);
-      omega = v_x_y.at(1);
+      ballPosition[0] = x_y_d[0];
+      ballPosition[1] = x_y_d[1];
+      simxSetObjectPosition(remApiClientID, ballHandle, -1, ballPosition, simx_opmode_oneshot_wait);
+      v_x = 0.2 *v_x_y[0];
+      omega = 0.2* v_x_y[1];
 
       cout <<"At time:" << delta_t << "\tv:" << v_x << "...w:" << omega << endl;
-
+      motion.move(v_x, 0, omega);
+      sleep(0.4);
     }
   motion.stopMove();
   simxFinish(remApiClientID);
