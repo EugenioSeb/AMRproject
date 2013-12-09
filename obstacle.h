@@ -19,7 +19,7 @@ using namespace std ;
 class obstacle
 {
 private:
-    thread *_motion;
+    thread _motion;
     int _clientId;
     simxInt _obsHandle;
     simxFloat obsTrajectory(vector<float> &p_obs, double &time, vector<float> &start, vector<float> &end);

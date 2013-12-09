@@ -1,22 +1,18 @@
-/*
- * Copyright (c) 2012 Aldebaran Robotics. All rights reserved.
- * Use of this source code is governed by a BSD-style license that can be
- * found in the COPYING file.
- */
+
+
 #include <iostream>
+using namespace std;
 
+#define PI 3.14159
+#define NEWLINE '\n'
 
-int main()
+int main ()
 {
-  int answer = 40;
-  answer += 2;
-  if (answer != 42)
-  {
-    std::cerr << "We are all going to die!" << std::endl;
-    return 2;
-  }
+  double r=5.0;               // radius
+  double circle;
 
-  std::cout << "And the answer is: " << answer << std::endl;
-  std::cout << "Ok." << std::endl;
-  return 0;
+  circle = 2 * PI * r;
+  cout << circle;
+  cout << NEWLINE;
+
 }

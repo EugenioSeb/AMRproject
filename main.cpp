@@ -89,8 +89,6 @@ void getTrajectoryPo2Po(vector<float> &pos_des, vector<float> &vel_des, double t
     float m = (end[1]-init[1])/(end[0]-init[0]);
     float theta_d = atan(m);
 
-    cout<<"Theta:"<<theta_d<<endl;
-
     //Traiettoria tra due punti
     pos_des[0] = init[0] +  (LIN_V * time)/ mod * (end[0]- init[0]);
     pos_des[1] = init[1] +  (LIN_V * time)/ mod * (end[1]- init[1]);
@@ -111,8 +109,8 @@ int main() {
   //Connect VREP through remote API
   int remApiClientID = simxStart("127.0.0.1",19698,true,true,2000,5);
   if(remApiClientID == -1){
-  cout << "Error simxStart";
-    }
+    cout << "Error simxStart";
+  }
 
   // Get the handle of the "trajectory ball"
   simxInt ballHandle;
@@ -140,6 +138,7 @@ int main() {
   //Init of other parameters
   double delta_t = 0;
 
+cout<<"Porco"<<endl;
   timeval start;
   timeval stop;
 
@@ -176,9 +175,8 @@ int main() {
   //Create the obstacle
 
   obstacle ob1("Cuboid");
-
+  sleep(1);
   ob1.startMove();
-  cout<<"Porco"<<endl;
 
   //wait the robot start mooving
   sleep(0.8);
