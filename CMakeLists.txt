@@ -9,9 +9,10 @@ add_definitions(${CMAKE_CXX_FLAGS} "-std=c++0x")
 # Create a executable named simulator
 # with the source file: main.cpp
 
+add_library(obstacle obstacle.h obstacle.cpp)
 qi_create_bin(simulator "main.cpp")
 qi_use_lib(simulator ALCOMMON ALERROR)
-target_link_libraries(simulator remoteApi pthread)
+target_link_libraries(simulator remoteApi pthread obstacle)
 
 # qi_create_bin(loadScene "loadScene.cpp")
 # target_link_libraries(loadScene remoteApi)

@@ -9,6 +9,8 @@
 #include <ctime>
 #include <vector>
 #include <math.h>
+#include <thread>
+#include "obstacle.h"
 
 extern "C" {
 #include "remoteApi/extApi.h"
@@ -24,9 +26,22 @@ extern "C" {
 #define CENTER_X 0
 #define CENTER_Y 1
 #define RAY 1
+#define LIN_V 0.1
 
 using namespace std ;
-std::vector<float> inOutController(const std::vector<float> &x_y_d,  const std::vector<float> &robot_pos,  const std::vector<float> &v_x_y_d){
+
+
+//Compute the module of two vectors
+float module(vector<float> &init, vector<float> &end){
+    int size= init.size();
+    float mod = 0;
+    for(int i=0; i<size; i++){
+    mod += pow(end[i] - init[i], 2);
+    }
+    return mod;
+}
+
+vector<float> inOutController(const vector<float> &x_y_d,  const vector<float> &robot_pos,  const vector<float> &v_x_y_d){
 
   float x_d = x_y_d[0];
   float y_d = x_y_d[1];
@@ -38,7 +53,7 @@ std::vector<float> inOutController(const std::vector<float> &x_y_d,  const std::
   float v_x_d = v_x_y_d[0];
   float v_y_d = v_x_y_d[1];
 
-  float x_b = x + 2.0 * cos(theta);
+  float x_b = x + POINT_B* cos(theta);
   float y_b = y + POINT_B * sin(theta);
 
   float v_x_b = v_x_d + (K1 * (x_d - x_b));
@@ -49,27 +64,46 @@ std::vector<float> inOutController(const std::vector<float> &x_y_d,  const std::
   float omega = (cos(theta) * v_y_b - (sin(theta) * v_x_b )) / POINT_B;
 
   vector<float> res(2);
-  res[0] = v;
-  res[1] = omega;
+  res.at(0) = v;
+  res.at(1) = omega;
   return res;
 }
 
+
+
 // TODO Documentation
-void getTrajectory(vector<float> &position, vector<float> &velocity, double time){
-  const float theta_d = OMEGA_DES * time - (M_PI/2) + 0.15;
-  position[0] = CENTER_X + (RAY * cos(theta_d));
-  position[1] = CENTER_Y + (RAY * sin(theta_d));
+void getTrajectory(vector<float> &pos_des, vector<float> &vel_des, double time){
+  float theta_d = OMEGA_DES * time - (M_PI/2) + 0.15;
+  pos_des[0] = CENTER_X + (RAY * cos(theta_d));
+  pos_des[1] = CENTER_Y + (RAY * sin(theta_d));
 
-  velocity[0] = -RAY * sin(theta_d) * OMEGA_DES;
-  velocity[1] =  RAY * cos(theta_d) * OMEGA_DES;
+  vel_des[0] = -RAY * sin(theta_d) * OMEGA_DES;
+  vel_des[1] =  RAY * cos(theta_d) * OMEGA_DES;
+}
 
-  //Traiettoria "otto"
-  //x_c and y_c center of the "eight"
-//  position[0] = CENTER_X + (RAY * sin(2 * OMEGA_DES));
-//  position[1] = CENTER_Y + (RAY * sin(OMEGA_DES));
 
-//  velocity[0] = RAY * cos(2 * theta_d)* 2 * OMEGA_DES;
-//  velocity[1] =  RAY * cos(theta_d) * OMEGA_DES;
+//Get the straight trajectory between two points
+void getTrajectoryPo2Po(vector<float> &pos_des, vector<float> &vel_des, double time, vector<float> &init, vector<float> &end){
+
+    float mod = module(init, end);
+    float m = (end[1]-init[1])/(end[0]-init[0]);
+    float theta_d = atan(m);
+
+    cout<<"Theta:"<<theta_d<<endl;
+
+    //Traiettoria tra due punti
+    pos_des[0] = init[0] +  (LIN_V * time)/ mod * (end[0]- init[0]);
+    pos_des[1] = init[1] +  (LIN_V * time)/ mod * (end[1]- init[1]);
+
+    //X and y velocity beetwen the two point
+    //vel_des[0] = (end[0]- init[0]) / mod * LIN_V * cos(theta_d);
+    //vel_des[1] = (end[1]- init[1]) / mod * LIN_V * sin(theta_d);
+    vel_des[0] = LIN_V * cos(theta_d);
+    vel_des[1] = LIN_V * sin(theta_d);
+}
+
+void obsTrajectory(vector<float> &pos_des, vector<float> &vel_des, double time, vector<float> &ObInit, vector<float> &ObEnd){
+
 }
 
 
@@ -77,15 +111,18 @@ int main() {
   //Connect VREP through remote API
   int remApiClientID = simxStart("127.0.0.1",19698,true,true,2000,5);
   if(remApiClientID == -1){
-      std::cout << "Error simxStart";
+  cout << "Error simxStart";
     }
-  // Get the handle of the ball
+
+  // Get the handle of the "trajectory ball"
   simxInt ballHandle;
-  cout<<"ErroreObjectHandle:"<<simxGetObjectHandle(remApiClientID, "Sphere", &ballHandle, simx_opmode_oneshot_wait)<<endl;
+  cout<<"Errore ballHandle:"<<simxGetObjectHandle(remApiClientID, "Sphere", &ballHandle, simx_opmode_oneshot_wait)<<endl;
+
   //Initialize the position
   simxInt robotHandle;
-  cout<<"Errore Handle:"<<simxGetObjectHandle(remApiClientID, "torso_respondable1cyl0", &robotHandle, simx_opmode_oneshot_wait)<<endl;
-  //Initialize the position
+  cout<<"Errore robotHandle:"<<simxGetObjectHandle(remApiClientID, "torso_respondable1cyl0", &robotHandle, simx_opmode_oneshot_wait)<<endl;
+
+  //Initialize the position of the "trajectory ball"
   simxFloat ballPosition[] = {0, 0, 0.25};
 
   //Set the IP and the Port for comunication
@@ -103,7 +140,6 @@ int main() {
   //Init of other parameters
   double delta_t = 0;
 
-
   timeval start;
   timeval stop;
 
@@ -114,10 +150,35 @@ int main() {
   std::vector<float> v_x_y_d(2);
   float v_x;
   float omega;
-
+  float theta_d;
   simxFloat robot_pos[3]; //x y z vector
   simxFloat robot_orient[3]; // angles along x y z
   vector<float> robot_pos_orient(3); // x y and z angle
+
+  //The initial and the final point for a straight trajectory
+  vector<float> init(2);
+  vector<float> end(2);
+  //Set the two point
+  init[0] = 0;
+  init[1] = 0;
+  end[0]  = -1;
+  end[1]  = -1;
+
+  //The initial and the final point of the obstacle trajectory
+  vector<float> ObInit(2);
+  vector<float> ObEnd(2);
+  //Set the two point
+  ObInit[0] = 0;
+  ObInit[1] = 0;
+  ObEnd[0]  = 2.5;
+  ObEnd[1]  = 0;
+
+  //Create the obstacle
+
+  obstacle ob1("Cuboid");
+
+  ob1.startMove();
+  cout<<"Porco"<<endl;
 
   //wait the robot start mooving
   sleep(0.8);
@@ -128,18 +189,15 @@ int main() {
 
       //motion.waitUntilWalkIsFinished( );
       gettimeofday(&stop, NULL);
-      //delta_t = delta_t + 0.5;
-      //theta = omega_d * delta_t;
-      //cout <<theta <<endl;
 
       //calcola elapsedTime
       delta_t  = (stop.tv_sec - start.tv_sec) * 1000.0;               // sec to ms
       delta_t += (stop.tv_usec - start.tv_usec) / 1000.0;            // us to ms
       delta_t  = delta_t / 1000.0;
 
-
-      //x_c and y_c center of the circumference
-      getTrajectory(x_y_d, v_x_y_d, delta_t);
+      //Get the trajectory desi
+      //getTrajectory(x_y_d,v_x_y_d,delta_t);
+      getTrajectoryPo2Po(x_y_d, v_x_y_d, delta_t, init, end);
 
       //std::vector<float> robot_pos = motion.getRobotPosition(false);
       simxGetObjectPosition(remApiClientID,   robotHandle, -1,robot_pos, simx_opmode_oneshot_wait);
