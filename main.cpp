@@ -11,6 +11,7 @@
 #include <math.h>
 #include <thread>
 #include "obstacle.h"
+#include "robtimer.h"
 
 extern "C" {
 #include "remoteApi/extApi.h"
@@ -29,10 +30,10 @@ extern "C" {
 #define LIN_V 0.1
 
 using namespace std ;
-
+typedef vector<float> vec;
 
 //Compute the module of two vectors
-float module(vector<float> &init, vector<float> &end){
+float module(vec &init, vec &end){
     int size= init.size();
     float mod = 0;
     for(int i=0; i<size; i++){
@@ -41,7 +42,7 @@ float module(vector<float> &init, vector<float> &end){
     return mod;
 }
 
-vector<float> inOutController(const vector<float> &x_y_d,  const vector<float> &robot_pos,  const vector<float> &v_x_y_d){
+vec inOutController(const vec &x_y_d,  const vec &robot_pos,  const vec &v_x_y_d){
 
   float x_d = x_y_d[0];
   float y_d = x_y_d[1];
@@ -63,7 +64,7 @@ vector<float> inOutController(const vector<float> &x_y_d,  const vector<float> &
   float v = cos(theta) * v_x_b + sin(theta) * v_y_b;
   float omega = (cos(theta) * v_y_b - (sin(theta) * v_x_b )) / POINT_B;
 
-  vector<float> res(2);
+  vec res(2);
   res.at(0) = v;
   res.at(1) = omega;
   return res;
@@ -72,7 +73,7 @@ vector<float> inOutController(const vector<float> &x_y_d,  const vector<float> &
 
 
 // TODO Documentation
-void getTrajectory(vector<float> &pos_des, vector<float> &vel_des, double time){
+void getTrajectory(vec &pos_des, vec &vel_des, double time){
   float theta_d = OMEGA_DES * time - (M_PI/2) + 0.15;
   pos_des[0] = CENTER_X + (RAY * cos(theta_d));
   pos_des[1] = CENTER_Y + (RAY * sin(theta_d));
@@ -83,7 +84,7 @@ void getTrajectory(vector<float> &pos_des, vector<float> &vel_des, double time){
 
 
 //Get the straight trajectory between two points
-void getTrajectoryPo2Po(vector<float> &pos_des, vector<float> &vel_des, double time, vector<float> &init, vector<float> &end){
+void getTrajectoryPo2Po(vec &pos_des, vec &vel_des, double time, vec &init, vec &end){
 
     float mod = module(init, end);
     float m = (end[1]-init[1])/(end[0]-init[0]);
@@ -100,7 +101,7 @@ void getTrajectoryPo2Po(vector<float> &pos_des, vector<float> &vel_des, double t
     vel_des[1] = LIN_V * sin(theta_d);
 }
 
-void obsTrajectory(vector<float> &pos_des, vector<float> &vel_des, double time, vector<float> &ObInit, vector<float> &ObEnd){
+void obsTrajectory(vec &pos_des, vec &vel_des, double time, vec &ObInit, vec &ObEnd){
 
 }
 
@@ -110,7 +111,7 @@ int main() {
   int remApiClientID = simxStart("127.0.0.1",19698,true,true,2000,5);
   if(remApiClientID == -1){
     cout << "Error simxStart";
-  }
+   }
 
   // Get the handle of the "trajectory ball"
   simxInt ballHandle;
@@ -138,25 +139,20 @@ int main() {
   //Init of other parameters
   double delta_t = 0;
 
-cout<<"Porco"<<endl;
-  timeval start;
-  timeval stop;
-
   // x e y desiderati
-  std::vector<float> x_y_d(2);
+  vec x_y_d(2);
 
   // velocità su x e y desiderate
-  std::vector<float> v_x_y_d(2);
+  vec v_x_y_d(2);
   float v_x;
   float omega;
-  float theta_d;
   simxFloat robot_pos[3]; //x y z vector
   simxFloat robot_orient[3]; // angles along x y z
-  vector<float> robot_pos_orient(3); // x y and z angle
+  vec robot_pos_orient(3); // x y and z angle
 
   //The initial and the final point for a straight trajectory
-  vector<float> init(2);
-  vector<float> end(2);
+  vec init(2);
+  vec end(2);
   //Set the two point
   init[0] = 0;
   init[1] = 0;
@@ -164,8 +160,8 @@ cout<<"Porco"<<endl;
   end[1]  = -1;
 
   //The initial and the final point of the obstacle trajectory
-  vector<float> ObInit(2);
-  vector<float> ObEnd(2);
+  vec ObInit(2);
+  vec ObEnd(2);
   //Set the two point
   ObInit[0] = 0;
   ObInit[1] = 0;
@@ -181,30 +177,25 @@ cout<<"Porco"<<endl;
   //wait the robot start mooving
   sleep(0.8);
 
-  gettimeofday(&start, NULL);
+  RobTimer timer;
+
   //------------------------------------------- main cycle ----------------------------------------//
   while(true){
 
-      //motion.waitUntilWalkIsFinished( );
-      gettimeofday(&stop, NULL);
-
-      //calcola elapsedTime
-      delta_t  = (stop.tv_sec - start.tv_sec) * 1000.0;               // sec to ms
-      delta_t += (stop.tv_usec - start.tv_usec) / 1000.0;            // us to ms
-      delta_t  = delta_t / 1000.0;
+      delta_t  = timer.getTime();
 
       //Get the trajectory desi
       //getTrajectory(x_y_d,v_x_y_d,delta_t);
       getTrajectoryPo2Po(x_y_d, v_x_y_d, delta_t, init, end);
 
-      //std::vector<float> robot_pos = motion.getRobotPosition(false);
+      //vec robot_pos = motion.getRobotPosition(false);
       simxGetObjectPosition(remApiClientID,   robotHandle, -1,robot_pos, simx_opmode_oneshot_wait);
       simxGetObjectOrientation(remApiClientID, robotHandle, -1, robot_orient, simx_opmode_oneshot_wait);
       robot_pos_orient[0] = robot_pos[0];
       robot_pos_orient[1] = robot_pos[1];
       robot_pos_orient[2] = robot_orient[2];
 
-      vector<float> v_x_y = inOutController(x_y_d, robot_pos_orient, v_x_y_d);
+      vec v_x_y = inOutController(x_y_d, robot_pos_orient, v_x_y_d);
 
       //update ball position
       ballPosition[0] = x_y_d[0];
