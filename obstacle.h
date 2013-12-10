@@ -7,6 +7,8 @@
 #include <math.h>
 #include <sys/time.h>
 #include <thread>
+#include "utils.h"
+
 extern "C" {
 #include "remoteApi/extApi.h"
 #include "remoteApi/v_repConst.h"
@@ -22,11 +24,11 @@ private:
     thread _motion;
     int _clientId;
     simxInt _obsHandle;
-    simxFloat obsTrajectory(vector<float> &p_obs, double &time, vector<float> &start, vector<float> &end);
+    simxFloat _position[];
+    simxFloat obsTrajectory(vector<float> &p_obs, double &time, vector<float> &start, vector<float> &end);   
     void move();
-    float module(vector<float> &init, vector<float> &end);
 public:
-
+    vector<vec> getBoundingBox();
     obstacle(const char* Name);
     void startMove();
     //void stopMove();

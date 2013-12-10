@@ -1,5 +1,8 @@
 #ifndef UTILS_H
 #define UTILS_H
+#include <vector>
+
+typedef std::vector<float> vec;
 
 float module(vec &init, vec &end){
     int size= init.size();

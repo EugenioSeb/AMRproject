@@ -7,7 +7,7 @@
 #include <list>
 
 using namespace std;
-typedef vector<float> vec;
+
 
 class Trajectory
 {

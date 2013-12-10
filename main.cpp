@@ -12,6 +12,7 @@
 #include <thread>
 #include "obstacle.h"
 #include "robtimer.h"
+#include "utils.h"
 
 extern "C" {
 #include "remoteApi/extApi.h"
@@ -31,16 +32,6 @@ extern "C" {
 
 using namespace std ;
 typedef vector<float> vec;
-
-//Compute the module of two vectors
-float module(vec &init, vec &end){
-    int size= init.size();
-    float mod = 0;
-    for(int i=0; i<size; i++){
-    mod += pow(end[i] - init[i], 2);
-    }
-    return mod;
-}
 
 vec inOutController(const vec &x_y_d,  const vec &robot_pos,  const vec &v_x_y_d){
 
