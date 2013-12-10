@@ -40,7 +40,7 @@ void Trajectory::getPositioVelocity(float time, vec &position, vec &velocity)
   time -= _currentInitTime;
   vec start = *_currentInitCheckpoint;
   vec end = *next(_currentInitCheckpoint,1);
-  float mod = module(start, end);
+  float mod = stocazzo(start, end);
   float m = (end[1]-start[1])/(end[0]-start[0]);
   float theta_d = atan(m);
   //Traiettoria tra due punti

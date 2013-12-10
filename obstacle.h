@@ -8,7 +8,6 @@
 #include <sys/time.h>
 #include <thread>
 #include "utils.h"
-
 extern "C" {
 #include "remoteApi/extApi.h"
 #include "remoteApi/v_repConst.h"

@@ -59,20 +59,11 @@ void obstacle::move()
     }
 }
 
-float modul(vector<float> &init, vector<float> &end)
-{
-  int size= init.size();
-  float mod = 0;
-  for(int i=0; i<size; i++){
-      mod += pow(end[i] - init[i], 2);
-    }
-  return mod;
-}
 
 simxFloat obstacle::obsTrajectory(vector<float> &p_obs, double &time, vector<float> &start, vector<float> &end)
 {
 
-  float mod = modul(start, end);
+  float mod = stocazzo(start, end);
   const float velocity = 0.1;
 
   //Traiettoria tra due punti

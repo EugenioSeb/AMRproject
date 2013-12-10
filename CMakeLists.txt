@@ -11,10 +11,11 @@ add_definitions(${CMAKE_CXX_FLAGS} "-std=c++0x")
 
 add_library(obstacle obstacle.h obstacle.cpp)
 add_library(robtimer robtimer.h robtimer.cpp)
+add_library(utils utils.h utils.cpp)
 add_library(trajectory trajectory.h trajectory.cpp)
 qi_create_bin(simulator "main.cpp")
 qi_use_lib(simulator ALCOMMON ALERROR)
-target_link_libraries(simulator remoteApi pthread obstacle robtimer trajectory)
+target_link_libraries(simulator remoteApi pthread obstacle robtimer trajectory utils)
 
 
 
