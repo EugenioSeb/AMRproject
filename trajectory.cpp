@@ -20,11 +20,14 @@ bool intersection( vec p1seg1, vec p2seg1, vec p1seg2,  vec p2seg2, vec& interse
   }
 
 
-Trajectory::Trajectory(float velocity, vec start) :
+Trajectory::Trajectory(float velocity, vec start, vec nextCheckpoint) :
   _velocity(velocity),
+  _currentInitTime(0.0f),
   _checkpoints()
 {
   pushBackCheckpoint(start);
+  pushBackCheckpoint(nextCheckpoint);
+  _currentEndTime = _velocity / module(start,nextCheckpoint);
   _currentInitCheckpoint = _checkpoints.begin();
 }
 
@@ -58,7 +61,8 @@ void Trajectory::getPositioVelocity(float time, vec &position, vec &velocity)
     }
   time -= _currentInitTime;
   vec start = *_currentInitCheckpoint;
-  vec end = *next(_currentInitCheckpoint,1);
+  list<vec>::iterator temp = next(_currentInitCheckpoint,1);
+  vec end = *temp;
   float mod = module(start, end);
   float m = (end[1]-start[1])/(end[0]-start[0]);
   float theta_d = atan(m);

@@ -8,3 +8,12 @@ float module(vec &init, vec &end){
     }
     return mod;
 }
+
+vec create2dvec(float x, float y)
+{
+  vec vector(2);
+  //Set the two point
+  vector[0] = x;
+  vector[1] = y;
+  return vector;
+}

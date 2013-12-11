@@ -17,7 +17,7 @@ obstacle::obstacle(const char* name)
 }
 
 
-void obstacle::move()
+void obstacle::move(vec start, vec end)
 {
   //Set the variable for the time
   //Init of other parameters
@@ -26,15 +26,13 @@ void obstacle::move()
   timeval stop_t;
 
   //Set the initial and final point of the desidered trajectory of the obstacle
-  vector<float> start(2);
-  vector<float> end(2);
   start[0] = 1;
   start[1] = -1;
   end[0] = 1;
   end[1] = 1;
 
   //The current position of the obstacle
-  vector<float> p_obs(2);
+  vec p_obs(2);
 
   //Set the obstacle to the initial position
   simxFloat obsPosition[] = {start[0], start[1], 0.25f};
@@ -64,7 +62,7 @@ void obstacle::move()
 }
 
 
-simxFloat obstacle::obsTrajectory(vector<float> &p_obs, double &time, vector<float> &start, vector<float> &end)
+simxFloat obstacle::obsTrajectory(vec &p_obs, double &time, vec &start, vec &end)
 {
 
   float mod = module(start, end);
@@ -76,9 +74,9 @@ simxFloat obstacle::obsTrajectory(vector<float> &p_obs, double &time, vector<flo
 
 }
 
-void obstacle::startMove()
+void obstacle::startMove(vec start, vec end)
 {
-  _motion = thread(&obstacle::move, this);
+  _motion = thread(&obstacle::move, this, start, end);
 }
 
 vector<vec> obstacle::getBoundingBox()
