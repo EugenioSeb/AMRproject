@@ -40,7 +40,7 @@ void Trajectory::getPositioVelocity(float time, vec &position, vec &velocity)
   time -= _currentInitTime;
   vec start = *_currentInitCheckpoint;
   vec end = *next(_currentInitCheckpoint,1);
-  float mod = stocazzo(start, end);
+  float mod = module(start, end);
   float m = (end[1]-start[1])/(end[0]-start[0]);
   float theta_d = atan(m);
   //Traiettoria tra due punti
@@ -60,8 +60,21 @@ vec* Trajectory::isCollision(obstacle obs)
 
 }
 
-void Trajectory::makeForwardCheckpoint(float dist)
+void Trajectory::makeForwardCheckpoint(float distance)
 {
+  //Compute the theta_d (angle between the segment and the x axis)
+  vec start = *_currentInitCheckpoint;
+  vec end = *next(_currentInitCheckpoint,1);
+  float m = (end[1]-start[1])/(end[0]-start[0]);
+  float theta_d = atan(m);
+
+  //Compute the new checkpoint
+  vec newCheckpoint(2);
+  newCheckpoint[0] =  _robotPosition[0] + distance * cos(theta_d);
+  newCheckpoint[1] =  _robotPosition[1] + distance * sin(theta_d);
+
+  //Add the new checkpoint
+  _checkpoints.insert(next(_currentInitCheckpoint,1), newCheckpoint);
 
 }
 
