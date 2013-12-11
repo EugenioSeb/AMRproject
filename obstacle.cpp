@@ -52,7 +52,6 @@ void obstacle::move(vec start, vec end)
       delta_t += (stop_t.tv_usec - start_t.tv_usec) / 1000.0;            // us to ms
       delta_t  = delta_t / 1000.0;
       obsTrajectory(p_obs, delta_t, start, end);
-      cout << p_obs[1]<<endl;
       _position[0] = p_obs[0];
       _position[1] = p_obs[1];
       _position[2] = 0;

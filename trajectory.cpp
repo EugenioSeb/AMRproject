@@ -27,7 +27,7 @@ Trajectory::Trajectory(float velocity, vec start, vec nextCheckpoint) :
 {
   pushBackCheckpoint(start);
   pushBackCheckpoint(nextCheckpoint);
-  _currentEndTime = _velocity / module(start,nextCheckpoint);
+  _currentEndTime = module(start,nextCheckpoint)/_velocity;
   _currentInitCheckpoint = _checkpoints.begin();
 }
 
