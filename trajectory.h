@@ -13,7 +13,7 @@ class Trajectory
 {
 public:
   //create a trajectory and fix the constant velocity
-  Trajectory(float velocity, vec start);
+  Trajectory(float velocity, vec start, vec nextCheckpoint);
 
   //ad a checkpoint at the end
   void pushBackCheckpoint(vec checkpoint);

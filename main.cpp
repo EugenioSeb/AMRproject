@@ -13,6 +13,7 @@
 #include "obstacle.h"
 #include "robtimer.h"
 #include "utils.h"
+#include "trajectory.h"
 
 extern "C" {
 #include "remoteApi/extApi.h"
@@ -62,8 +63,6 @@ vec inOutController(const vec &x_y_d,  const vec &robot_pos,  const vec &v_x_y_d
 }
 
 
-
-// TODO Documentation
 void getTrajectory(vec &pos_des, vec &vel_des, double time){
   float theta_d = OMEGA_DES * time - (M_PI/2) + 0.15;
   pos_des[0] = CENTER_X + (RAY * cos(theta_d));
@@ -91,11 +90,6 @@ void getTrajectoryPo2Po(vec &pos_des, vec &vel_des, double time, vec &init, vec 
     vel_des[0] = LIN_V * cos(theta_d);
     vel_des[1] = LIN_V * sin(theta_d);
 }
-
-void obsTrajectory(vec &pos_des, vec &vel_des, double time, vec &ObInit, vec &ObEnd){
-
-}
-
 
 int main() {
   //Connect VREP through remote API
@@ -141,35 +135,19 @@ int main() {
   simxFloat robot_orient[3]; // angles along x y z
   vec robot_pos_orient(3); // x y and z angle
 
-  //The initial and the final point for a straight trajectory
-  vec init(2);
-  vec end(2);
-  //Set the two point
-  init[0] = 0;
-  init[1] = 0;
-  end[0]  = -1;
-  end[1]  = -1;
 
-  //The initial and the final point of the obstacle trajectory
-  vec ObInit(2);
-  vec ObEnd(2);
-  //Set the two point
-  ObInit[0] = 0;
-  ObInit[1] = 0;
-  ObEnd[0]  = 2.5;
-  ObEnd[1]  = 0;
+  //The trajectory
+  Trajectory trajectory(LIN_V,create2dvec(-1.5,0),create2dvec(2,0));
 
   //Create the obstacle
-
   obstacle ob1("Cuboid");
   sleep(1);
-  ob1.startMove();
+  ob1.startMove(create2dvec(0,0),create2dvec(-1,-1));
 
   //wait the robot start mooving
   sleep(0.8);
 
   RobTimer timer;
-
   //------------------------------------------- main cycle ----------------------------------------//
   while(true){
 
@@ -177,7 +155,8 @@ int main() {
 
       //Get the trajectory desi
       //getTrajectory(x_y_d,v_x_y_d,delta_t);
-      getTrajectoryPo2Po(x_y_d, v_x_y_d, delta_t, init, end);
+      //getTrajectoryPo2Po(x_y_d, v_x_y_d, delta_t, init, end);
+      trajectory.getPositioVelocity(delta_t, x_y_d, v_x_y_d);
 
       //vec robot_pos = motion.getRobotPosition(false);
       simxGetObjectPosition(remApiClientID,   robotHandle, -1,robot_pos, simx_opmode_oneshot_wait);
