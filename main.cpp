@@ -77,7 +77,7 @@ void getTrajectory(vec &pos_des, vec &vel_des, double time){
 //Get the straight trajectory between two points
 void getTrajectoryPo2Po(vec &pos_des, vec &vel_des, double time, vec &init, vec &end){
 
-    float mod = stocazzo(init, end);
+    float mod = module(init, end);
     float m = (end[1]-init[1])/(end[0]-init[0]);
     float theta_d = atan(m);
 

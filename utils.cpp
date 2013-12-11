@@ -1,6 +1,6 @@
 #include "utils.h"
 
-float stocazzo(vec &init, vec &end){
+float module(vec &init, vec &end){
     int size= init.size();
     float mod = 0;
     for(int i=0; i<size; i++){

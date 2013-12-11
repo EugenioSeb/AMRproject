@@ -25,10 +25,10 @@ public:
   void getPositioVelocity(float time, vec &position, vec &velocity);
 
   //return the point of the first collision NULL otherwise
-  vec* isCollision(obstacle obs);
+  bool isCollision(obstacle obs, vec &collision);
 
   //make a chekpointr after dist metes from the robot position
-  void makeForwardCheckpoint(float dist);
+  void makeForwardCheckpoint(float distance);
 
 private:
   float dist(vec, vec);
@@ -37,6 +37,7 @@ private:
   list<vec>::iterator _currentInitCheckpoint;
   float _currentInitTime;
   float _currentEndTime;
+  vec _robotPosition;
 
 };
 
