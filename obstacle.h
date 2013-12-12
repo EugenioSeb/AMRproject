@@ -41,6 +41,7 @@ public:
     obstacle(const char* Name);
     void startMove(vec start, vec end);
     float _directionTheta;
+    float _currentModule;
     //void stopMove();
 
     vec getDirection();

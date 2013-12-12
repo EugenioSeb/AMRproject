@@ -73,12 +73,11 @@ bool Trajectory::isCollision(obstacle &obs)
   vector<vec> obsPoints = obs.getBoundingBox();
   for(list<vec>::iterator it = _currentInitCheckpoint; it != prev(_checkpoints.end(),1) ; it++)
     {
-      vec a = *it;
-      vec b = *next(it,1);
-      if(intersection(obsPoints[0],obsPoints[1],a, b,collision) ||
-         intersection(obsPoints[1],obsPoints[2],a, b,collision) ||
-         intersection(obsPoints[2],obsPoints[3],a, b,collision) ||
-         intersection(obsPoints[3],obsPoints[0],a, b,collision) )
+      list<vec>::iterator nextIt = next(it,1);
+      if(intersection(obsPoints[0], obsPoints[1], *it, *nextIt, collision) ||
+         intersection(obsPoints[1], obsPoints[2], *it, *nextIt, collision) ||
+         intersection(obsPoints[2], obsPoints[3], *it, *nextIt, collision) ||
+         intersection(obsPoints[3], obsPoints[0], *it, *nextIt, collision) )
         {
           if(it == _currentInitCheckpoint && dist(*it,collision) > dist(*it,_robotPosition))
             {
@@ -89,6 +88,8 @@ bool Trajectory::isCollision(obstacle &obs)
               return true;
             }
         }
+      else
+        cout << "No Collision" << endl;
     }
   return false;
 }
@@ -110,7 +111,5 @@ void Trajectory::makeForwardCheckpoint(float distance)
   _checkpoints.insert(next(_currentInitCheckpoint,1), newCheckpoint);
 
 }
-
-
 
 

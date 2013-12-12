@@ -12,16 +12,13 @@ obstacle::obstacle(const char* name):
     }
   // Get the handle of the "trajectory ball"
   cout<<"Errore obstacle Handle:"<<simxGetObjectHandle(_clientId, name, &_obsHandle, simx_opmode_oneshot_wait)<<endl;
-
 }
-
 
 void obstacle::move(vec start, vec end)
 {
   //Set the variable for the time
   //Init of other parameters
   double delta_t = 0;
-
   //Set the initial and final point of the desidered trajectory of the obstacle
 
 
@@ -41,19 +38,18 @@ void obstacle::move(vec start, vec end)
       simxSetObjectPosition(_clientId, _obsHandle, -1, _position, simx_opmode_oneshot_wait);
       sleep(SAMPLING_TIME);
     }
-  cout<< "Object final position: "<< p_obs[0]<< " " <<p_obs[1] <<endl;
+}
+
+float simxFloatDist(simxFloat a[], simxFloat b[]){
+  return sqrt(pow(a[0]-b[0],2)+pow(a[1]-b[1],2));
 }
 
 
 simxFloat obstacle::obsTrajectory(vec &p_obs, double &time, vec &start, vec &end)
 {
-
-  float mod = module(start, end);
-
-
   //Traiettoria tra due punti
-  p_obs[0] = start[0] +  (VELOCITY * time)/ mod * (end[0]- start[0]);
-  p_obs[1] = start[1] +  (VELOCITY * time)/ mod * (end[1]- start[1]);
+  p_obs[0] = start[0] +  (VELOCITY * time)/ _currentModule * (end[0]- start[0]);
+  p_obs[1] = start[1] +  (VELOCITY * time)/ _currentModule * (end[1]- start[1]);
 
 }
 
@@ -66,6 +62,7 @@ void obstacle::startMove(vec start, vec end)
 {
   float m = (end[1]-start[1])/(end[0]-start[0]);
   _directionTheta = atan(m);
+
   _motion = thread(&obstacle::move, this, start, end);
 }
 
