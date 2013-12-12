@@ -24,14 +24,16 @@ private:
     int _clientId;
     simxInt _obsHandle;
     simxFloat _position[];
-    simxFloat obsTrajectory(vector<float> &p_obs, double &time, vector<float> &start, vector<float> &end);   
+    simxFloat obsTrajectory(vector<float> &p_obs, double &time, vector<float> &start, vector<float> &end);
     void move(vec start, vec end);
 public:
     vector<vec> getBoundingBox();
     obstacle(const char* Name);
     void startMove(vec start, vec end);
+    float _directionTheta;
     //void stopMove();
 
+    vec getDirection();
 };
 
 #endif // OBSTACLE_H

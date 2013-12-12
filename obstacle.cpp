@@ -1,7 +1,7 @@
 #include "obstacle.h"
 
-#define D_B 0.5
-
+#define B_BOX_DIST 0.5
+#define VELOCITY 0.1
 using namespace std ;
 
 obstacle::obstacle(const char* name)
@@ -26,10 +26,7 @@ void obstacle::move(vec start, vec end)
   timeval stop_t;
 
   //Set the initial and final point of the desidered trajectory of the obstacle
-  start[0] = 1;
-  start[1] = -1;
-  end[0] = 1;
-  end[1] = 1;
+
 
   //The current position of the obstacle
   vec p_obs(2);
@@ -42,8 +39,9 @@ void obstacle::move(vec start, vec end)
   gettimeofday(&start_t, NULL);
 
   //The while loop for update the position of the obstacle
-  while(true)
+  while(_position[1] < 0.1)
     {
+
       //Stop the time interval
       gettimeofday(&stop_t, NULL);
 
@@ -65,16 +63,23 @@ simxFloat obstacle::obsTrajectory(vec &p_obs, double &time, vec &start, vec &end
 {
 
   float mod = module(start, end);
-  const float velocity = 0.1;
+
 
   //Traiettoria tra due punti
-  p_obs[0] = start[0] +  (velocity * time)/ mod * (end[0]- start[0]);
-  p_obs[1] = start[1] +  (velocity * time)/ mod * (end[1]- start[1]);
+  p_obs[0] = start[0] +  (VELOCITY * time)/ mod * (end[0]- start[0]);
+  p_obs[1] = start[1] +  (VELOCITY * time)/ mod * (end[1]- start[1]);
 
+}
+
+vec obstacle::getDirection()
+{
+  return create2dvec(cos(_directionTheta),sin(_directionTheta));
 }
 
 void obstacle::startMove(vec start, vec end)
 {
+  float m = (end[1]-start[1])/(end[0]-start[0]);
+  float _directionTheta = atan(m);
   _motion = thread(&obstacle::move, this, start, end);
 }
 
@@ -87,17 +92,17 @@ vector<vec> obstacle::getBoundingBox()
   vec p4(2);
 
   //Compute the vertex
-  p1[0] = _position[0] - D_B;
-  p1[1] = _position[1] + D_B;
+  p1[0] = _position[0] - B_BOX_DIST;
+  p1[1] = _position[1] + B_BOX_DIST;
 
-  p2[0] = _position[0] + D_B;
-  p2[1] = _position[1] + D_B;
+  p2[0] = _position[0] + B_BOX_DIST;
+  p2[1] = _position[1] + B_BOX_DIST;
 
-  p3[0] = _position[0] + D_B;
-  p3[1] = _position[1] - D_B;
+  p3[0] = _position[0] + B_BOX_DIST;
+  p3[1] = _position[1] - B_BOX_DIST;
 
-  p4[0] = _position[0] - D_B;
-  p4[1] = _position[1] - D_B;
+  p4[0] = _position[0] - B_BOX_DIST;
+  p4[1] = _position[1] - B_BOX_DIST;
 
   //Initialize the return vector<vec>
   vector<vec> box(4);

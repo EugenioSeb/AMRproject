@@ -142,7 +142,7 @@ int main() {
   //Create the obstacle
   obstacle ob1("Cuboid");
   sleep(1);
-  ob1.startMove(create2dvec(0,0),create2dvec(-1,-1));
+  ob1.startMove(create2dvec(0.75,-0.5),create2dvec(0.75,0));
 
   //wait the robot start mooving
   sleep(0.8);
@@ -167,6 +167,8 @@ int main() {
 
       vec v_x_y = inOutController(x_y_d, robot_pos_orient, v_x_y_d);
 
+      if(trajectory.isCollision(ob1))
+        cout << "COLLISION DETECTEEEEEDD!!!!!!";
       //update ball position
       ballPosition[0] = x_y_d[0];
       ballPosition[1] = x_y_d[1];

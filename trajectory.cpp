@@ -1,5 +1,5 @@
 #include "trajectory.h"
-#include "utils.h"
+
 
 bool intersection( vec p1seg1, vec p2seg1, vec p1seg2,  vec p2seg2, vec& intersect) {
     float d = (p1seg1[0]-p2seg1[0])*(p1seg2[1]-p2seg2[1]) - (p1seg1[1]-p2seg1[1])*(p1seg2[0]-p2seg2[0]);
@@ -36,19 +36,10 @@ void Trajectory::pushBackCheckpoint(vec checkpoint)
   _checkpoints.push_back(checkpoint);
 }
 
-void Trajectory::addCheckpoint(vec checkpoint, vec collisionPoint)
+void Trajectory::addCheckpoint(vec checkpoint)
 {
-
-  for(list<vec>::iterator it = _currentInitCheckpoint; it != prev(_checkpoints.end(),1) ; it++)
-    {
-      list<vec>::iterator nextIt = next(it,1);
-      if (it->at(0) < collisionPoint.at(0) && it->at(1) < collisionPoint.at(1)  &&
-          nextIt->at(0) > collisionPoint.at(0) && nextIt->at(1) > collisionPoint.at(1))
-        {
-          _checkpoints.insert(nextIt,checkpoint);
-        }
-    }
-  throw "CollisionPoint is not in the trajectory";
+  list<vec>::iterator nextIt = next(_collisionInitCheckpoint, 1);
+  _checkpoints.insert(nextIt,checkpoint);
 }
 
 void Trajectory::getPositioVelocity(float time, vec &position, vec &velocity)
@@ -79,8 +70,10 @@ void Trajectory::getPositioVelocity(float time, vec &position, vec &velocity)
 }
 
 //return true if there is a collision and do side effect on argument collision (a vec of 2 elements), if not return false
-bool Trajectory::isCollision(obstacle obs, vec& collision)
+bool Trajectory::isCollision(obstacle &obs)
 {
+  vec collision(2);
+
   vector<vec> obsPoints = obs.getBoundingBox();
   for(list<vec>::iterator it = _currentInitCheckpoint; it != prev(_checkpoints.end(),1) ; it++)
     {
@@ -89,8 +82,18 @@ bool Trajectory::isCollision(obstacle obs, vec& collision)
          intersection(obsPoints[1],obsPoints[2],*it, *nextIt,collision) ||
          intersection(obsPoints[2],obsPoints[3],*it, *nextIt,collision) ||
          intersection(obsPoints[3],obsPoints[0],*it, *nextIt,collision) )
-        if(it != _currentInitCheckpoint || dist(*it,collision) > dist(*it,_robotPosition))
-          return true;
+        {
+          if(it == _currentInitCheckpoint && dist(*it,collision) > dist(*it,_robotPosition))
+            {
+              _collisionInitCheckpoint = it;
+              makeForwardCheckpoint(DIST);
+              vec direct = obs.getDirection();
+
+              addCheckpoint(create2dvec(collision[0] + direct[0]* DEF_LENGHT,collision[1] + direct[1]*DEF_LENGHT));
+              return true;
+            }
+        }
+
     }
   return false;
 }
