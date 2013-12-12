@@ -1,7 +1,7 @@
 #include "trajectory.h"
 
 
-bool intersection( vec p1seg1, vec p2seg1, vec p1seg2,  vec p2seg2, vec& intersect) {
+bool intersection(vec p1seg1, vec p2seg1, vec p1seg2,  vec p2seg2, vec& intersect) {
     float d = (p1seg1[0]-p2seg1[0])*(p1seg2[1]-p2seg2[1]) - (p1seg1[1]-p2seg1[1])*(p1seg2[0]-p2seg2[0]);
     if (d == 0) return false;
 
@@ -14,11 +14,10 @@ bool intersection( vec p1seg1, vec p2seg1, vec p1seg2,  vec p2seg2, vec& interse
       return false;
     if (intersect[1] < min(p1seg1[1],p2seg1[1]) || intersect[1] > max(p1seg1[1],p2seg1[1]))
       return false;
-    if (intersect[1] < min(p1seg2[1],p2seg2[1]) || intersect[0] > max(p1seg2[1],p2seg2[1]))
+    if (intersect[1] < min(p1seg2[1],p2seg2[1]) || intersect[1] > max(p1seg2[1],p2seg2[1]))
       return false;
     return true;
   }
-
 
 Trajectory::Trajectory(float velocity, vec start, vec nextCheckpoint) :
   _velocity(velocity),
@@ -44,7 +43,6 @@ void Trajectory::addCheckpoint(vec checkpoint)
 
 void Trajectory::getPositioVelocity(float time, vec &position, vec &velocity)
 {
-
   if (time > _currentEndTime)
     {
       _currentInitCheckpoint++;
@@ -64,7 +62,6 @@ void Trajectory::getPositioVelocity(float time, vec &position, vec &velocity)
   //X and y velocity beetwen the two point
   velocity[0] = _velocity * cos(theta_d);
   velocity[1] = _velocity * sin(theta_d);
-
   if (time > _currentEndTime)
     _currentEndTime = _velocity * mod;
 }
@@ -73,27 +70,25 @@ void Trajectory::getPositioVelocity(float time, vec &position, vec &velocity)
 bool Trajectory::isCollision(obstacle &obs)
 {
   vec collision(2);
-
   vector<vec> obsPoints = obs.getBoundingBox();
   for(list<vec>::iterator it = _currentInitCheckpoint; it != prev(_checkpoints.end(),1) ; it++)
     {
-      list<vec>::iterator nextIt = next(it,1);
-      if(intersection(obsPoints[0],obsPoints[1],*it, *nextIt,collision) ||
-         intersection(obsPoints[1],obsPoints[2],*it, *nextIt,collision) ||
-         intersection(obsPoints[2],obsPoints[3],*it, *nextIt,collision) ||
-         intersection(obsPoints[3],obsPoints[0],*it, *nextIt,collision) )
+      vec a = *it;
+      vec b = *next(it,1);
+      if(intersection(obsPoints[0],obsPoints[1],a, b,collision) ||
+         intersection(obsPoints[1],obsPoints[2],a, b,collision) ||
+         intersection(obsPoints[2],obsPoints[3],a, b,collision) ||
+         intersection(obsPoints[3],obsPoints[0],a, b,collision) )
         {
           if(it == _currentInitCheckpoint && dist(*it,collision) > dist(*it,_robotPosition))
             {
               _collisionInitCheckpoint = it;
               makeForwardCheckpoint(DIST);
               vec direct = obs.getDirection();
-
               addCheckpoint(create2dvec(collision[0] + direct[0]* DEF_LENGHT,collision[1] + direct[1]*DEF_LENGHT));
               return true;
             }
         }
-
     }
   return false;
 }
@@ -110,16 +105,12 @@ void Trajectory::makeForwardCheckpoint(float distance)
   vec newCheckpoint(2);
   newCheckpoint[0] =  _robotPosition[0] + distance * cos(theta_d);
   newCheckpoint[1] =  _robotPosition[1] + distance * sin(theta_d);
-
+  _currentEndTime = dist(start,newCheckpoint)/_velocity;
   //Add the new checkpoint
   _checkpoints.insert(next(_currentInitCheckpoint,1), newCheckpoint);
 
 }
 
-
-float Trajectory::dist(vec a,vec b){
-  return sqrt(pow(a[0]-b[0],2)+pow(a[1]-b[1],2));
-}
 
 
 

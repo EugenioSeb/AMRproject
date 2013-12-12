@@ -36,7 +36,6 @@ public:
   void manageCollision();
 
 private:
-  float dist(vec, vec);
   float _velocity;
   list<vec> _checkpoints;
   list<vec>::iterator _currentInitCheckpoint;

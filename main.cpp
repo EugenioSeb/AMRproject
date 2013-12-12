@@ -29,7 +29,7 @@ extern "C" {
 #define CENTER_X 0
 #define CENTER_Y 1
 #define RAY 1
-#define LIN_V 0.1
+#define LIN_VELOCITY 0.1
 
 using namespace std ;
 typedef vector<float> vec;
@@ -81,14 +81,14 @@ void getTrajectoryPo2Po(vec &pos_des, vec &vel_des, double time, vec &init, vec 
     float theta_d = atan(m);
 
     //Traiettoria tra due punti
-    pos_des[0] = init[0] +  (LIN_V * time)/ mod * (end[0]- init[0]);
-    pos_des[1] = init[1] +  (LIN_V * time)/ mod * (end[1]- init[1]);
+    pos_des[0] = init[0] +  (LIN_VELOCITY * time)/ mod * (end[0]- init[0]);
+    pos_des[1] = init[1] +  (LIN_VELOCITY * time)/ mod * (end[1]- init[1]);
 
     //X and y velocity beetwen the two point
     //vel_des[0] = (end[0]- init[0]) / mod * LIN_V * cos(theta_d);
     //vel_des[1] = (end[1]- init[1]) / mod * LIN_V * sin(theta_d);
-    vel_des[0] = LIN_V * cos(theta_d);
-    vel_des[1] = LIN_V * sin(theta_d);
+    vel_des[0] = LIN_VELOCITY * cos(theta_d);
+    vel_des[1] = LIN_VELOCITY * sin(theta_d);
 }
 
 int main() {
@@ -135,9 +135,8 @@ int main() {
   simxFloat robot_orient[3]; // angles along x y z
   vec robot_pos_orient(3); // x y and z angle
 
-
   //The trajectory
-  Trajectory trajectory(LIN_V,create2dvec(-1.5,0),create2dvec(2,0));
+  Trajectory trajectory(LIN_VELOCITY,create2dvec(-1.5,0),create2dvec(2,0));
 
   //Create the obstacle
   obstacle ob1("Cuboid");
@@ -150,9 +149,7 @@ int main() {
   RobTimer timer;
   //------------------------------------------- main cycle ----------------------------------------//
   while(true){
-
       delta_t  = timer.getTime();
-
       //Get the trajectory desi
       //getTrajectory(x_y_d,v_x_y_d,delta_t);
       //getTrajectoryPo2Po(x_y_d, v_x_y_d, delta_t, init, end);

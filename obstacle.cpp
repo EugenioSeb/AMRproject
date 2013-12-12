@@ -1,10 +1,9 @@
 #include "obstacle.h"
 
-#define B_BOX_DIST 0.5
-#define VELOCITY 0.1
 using namespace std ;
 
-obstacle::obstacle(const char* name)
+obstacle::obstacle(const char* name):
+  _position {0.0f,0.0f,0.25f}
 {
   //Connect VREP through remote API
   _clientId = simxStart("127.0.0.1",19699,true,true,2000,5);
@@ -22,40 +21,27 @@ void obstacle::move(vec start, vec end)
   //Set the variable for the time
   //Init of other parameters
   double delta_t = 0;
-  timeval start_t;
-  timeval stop_t;
 
   //Set the initial and final point of the desidered trajectory of the obstacle
 
 
   //The current position of the obstacle
-  vec p_obs(2);
-
-  //Set the obstacle to the initial position
-  simxFloat obsPosition[] = {start[0], start[1], 0.25f};
-  simxSetObjectPosition(_clientId, _obsHandle, -1, obsPosition, simx_opmode_oneshot_wait);
+  vec p_obs = start;
 
   //Start the time
-  gettimeofday(&start_t, NULL);
-
+  RobTimer timer;
+  float segment_lenght = dist(start,end);
   //The while loop for update the position of the obstacle
-  while(_position[1] < 0.1)
+  while(dist(start,p_obs) < segment_lenght)
     {
-
-      //Stop the time interval
-      gettimeofday(&stop_t, NULL);
-
-      //calcola elapsedTime
-      delta_t  = (stop_t.tv_sec - start_t.tv_sec) * 1000.0;               // sec to ms
-      delta_t += (stop_t.tv_usec - start_t.tv_usec) / 1000.0;            // us to ms
-      delta_t  = delta_t / 1000.0;
+      delta_t  = timer.getTime();
       obsTrajectory(p_obs, delta_t, start, end);
       _position[0] = p_obs[0];
       _position[1] = p_obs[1];
-      _position[2] = 0;
       simxSetObjectPosition(_clientId, _obsHandle, -1, _position, simx_opmode_oneshot_wait);
-      sleep(0.1);
+      sleep(SAMPLING_TIME);
     }
+  cout<< "Object final position: "<< p_obs[0]<< " " <<p_obs[1] <<endl;
 }
 
 
@@ -79,7 +65,7 @@ vec obstacle::getDirection()
 void obstacle::startMove(vec start, vec end)
 {
   float m = (end[1]-start[1])/(end[0]-start[0]);
-  float _directionTheta = atan(m);
+  _directionTheta = atan(m);
   _motion = thread(&obstacle::move, this, start, end);
 }
 
@@ -90,7 +76,6 @@ vector<vec> obstacle::getBoundingBox()
   vec p2(2);
   vec p3(2);
   vec p4(2);
-
   //Compute the vertex
   p1[0] = _position[0] - B_BOX_DIST;
   p1[1] = _position[1] + B_BOX_DIST;

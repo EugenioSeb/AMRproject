@@ -8,5 +8,5 @@ typedef std::vector<float> vec;
 float module(vec &init, vec &end);
 
 vec create2dvec(float x, float y);
-
+float dist(vec a,vec b);
 #endif // UTILS_HPP
