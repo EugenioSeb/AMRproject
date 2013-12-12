@@ -8,6 +8,7 @@
 #include <sys/time.h>
 #include <thread>
 #include "utils.h"
+#include "robtimer.h"
 extern "C" {
 #include "remoteApi/extApi.h"
 #include "remoteApi/v_repConst.h"
@@ -31,6 +32,7 @@ public:
     obstacle(const char* Name);
     void startMove(vec start, vec end);
     float _directionTheta;
+    float _currentModule;
     //void stopMove();
 
     vec getDirection();

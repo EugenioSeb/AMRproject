@@ -142,7 +142,7 @@ int main() {
   //Create the obstacle
   obstacle ob1("Cuboid");
   sleep(1);
-  ob1.startMove(create2dvec(0.75,-0.5),create2dvec(0.75,0));
+  ob1.startMove(create2dvec(0.75,-0.1),create2dvec(0.75,0));
 
   //wait the robot start mooving
   sleep(0.8);

@@ -17,3 +17,7 @@ vec create2dvec(float x, float y)
   vector[1] = y;
   return vector;
 }
+
+float dist(vec a, vec b){
+  return sqrt(pow(a[0]-b[0],2)+pow(a[1]-b[1],2));
+}
